@@ -24,6 +24,7 @@ import cn.winuxs.lib.R;
  * <br/>Func:
  */
 
+@SuppressWarnings("unused")
 public class ButtonLikeView extends View {
     public static final int DEFAULT_TEXT_SIZE_PIXELS = 16;
     public static final int MAX_ALPHA = 255;
@@ -35,11 +36,12 @@ public class ButtonLikeView extends View {
     private Paint mPaint;
     private Paint mPaintTextCur;
     private Paint mPaintTextNew;
+    private Paint mPaintTextPined;
 
     /**
      * 数值
      */
-    private int mValue = 1899;
+    private int mValue = 18899;
     private boolean isLiked = false;
     private Rect mTextBounds = new Rect();
     private ObjectAnimator mAnimator;
@@ -74,10 +76,13 @@ public class ButtonLikeView extends View {
         mPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         mPaintTextCur = new Paint(Paint.ANTI_ALIAS_FLAG);
         mPaintTextNew = new Paint(Paint.ANTI_ALIAS_FLAG);
+        mPaintTextPined = new Paint(Paint.ANTI_ALIAS_FLAG);
         mPaintTextCur.setTextSize(mTextSize);
-        mPaintTextCur.setColor(mTextColor);
         mPaintTextNew.setTextSize(mTextSize);
+        mPaintTextPined.setTextSize(mTextSize);
+        mPaintTextCur.setColor(mTextColor);
         mPaintTextNew.setColor(mTextColor);
+        mPaintTextPined.setColor(mTextColor);
         /*animator*/
         mAnimator = ObjectAnimator.ofInt(this, "textTranslateY", 0, mTextTranslateBound);
         mAnimator.setDuration(200);
@@ -102,15 +107,19 @@ public class ButtonLikeView extends View {
             public void onAnimationRepeat(Animator animation) {
             }
         });
-        setOnClickListener(new OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                if (mAnimator.isRunning()) {
-                    return;
-                }
-                isLiked = !isLiked;
-                mAnimator.start();
+        setOnClickListener(view -> {
+            if (mAnimator.isRunning()) {
+                return;
             }
+            isLiked = !isLiked;
+            mAnimator.start();
+        });
+        setOnLongClickListener(view -> {
+            if (mAnimator.isRunning()) {
+                return true;
+            }
+            setValue((int) (Math.random()*100000+1));
+            return true;
         });
     }
 
@@ -132,24 +141,67 @@ public class ButtonLikeView extends View {
         drawBitmap(canvas, centerX, centerY);
         drawText(canvas, centerX, centerY);
         mPaint.setColor(Color.RED);
-        canvas.drawLine(0, centerY, getWidth(), centerY, mPaint);
+        //canvas.drawLine(0, centerY, getWidth(), centerY, mPaint);
     }
 
     private void drawText(Canvas canvas, int centerX, int centerY) {
         int flag = isLiked ? 1 : -1;
+        /*改变文字透明度*/
         int alpha = (int) (((float) mTextTranslateY / mTextTranslateBound) * MAX_ALPHA);
         mPaintTextCur.setAlpha(MAX_ALPHA - alpha);
         mPaintTextNew.setAlpha(alpha);
+        int newValue = mValue + flag;
         String textCur = mValue + "";
-        String textNew = (mValue + flag) + "";
-        mPaintTextCur.getTextBounds(textCur, 0, textCur.length(), mTextBounds);
-        float leftX = centerX + (mTextSize / 2);
+        String textNew = newValue + "";
+        /*长度变化直接为整个文本做动画*/
+        if (textCur.length() != textNew.length()) {
+            mPaintTextCur.getTextBounds(textCur, 0, textCur.length(), mTextBounds);
+            int leftX = (int) (centerX + (mTextSize / 2));
+            mTextTranslateY = mTextTranslateY * -flag;
+            int baseLineY = (centerY - (mTextBounds.top + mTextBounds.bottom) / 2) + mTextTranslateY;
+            drawMovedText(canvas, leftX, baseLineY, textCur, textNew);
+            return;
+        }
+        /*长度不变则只需为变化的文本做动画*/
+        int dIndex = findFirstDifferentIndex(textCur, textNew);
+        String textPined = textCur.substring(0, dIndex);
+        int leftX = (int) (centerX + (mTextSize / 2));
+        mPaintTextPined.getTextBounds(textPined, 0, textPined.length(), mTextBounds);
+        int baseLineY = (centerY - (mTextBounds.top + mTextBounds.bottom) / 2);
+        /*绘制固定的部分文字*/
+        drawPinedText(canvas, leftX, baseLineY, textPined);
         mTextTranslateY = mTextTranslateY * -flag;
-        int baseLineY = (centerY - (mTextBounds.top + mTextBounds.bottom) / 2) + mTextTranslateY;
+        baseLineY = (centerY - (mTextBounds.top + mTextBounds.bottom) / 2) + mTextTranslateY;
+        leftX = (int) (leftX + mPaintTextPined.measureText(textPined));
+        /*绘制移动的部分文字*/
+        drawMovedText(canvas, leftX, baseLineY, textCur.substring(dIndex, textCur.length()), textNew.substring(dIndex, textCur.length()));
+    }
+
+    private void drawPinedText(Canvas canvas, int leftX, int baseLineY, String textPined) {
+        canvas.drawText(textPined, leftX, baseLineY, mPaintTextPined);
+    }
+
+    private int findFirstDifferentIndex(String text1, String text2) {
+        if (text1.length() <= 0 || text1.length() != text2.length()) {
+            throw new IllegalArgumentException("two string's length must be same!");
+        }
+        int index = 0;
+        for (int i = 0; i < text1.length(); i++) {
+            if (text1.charAt(i) != text2.charAt(i)) {
+                index = i;
+                break;
+            }
+        }
+        return index;
+    }
+
+    private void drawMovedText(Canvas canvas, int leftX, int baseLineY, String textCur, String textNew) {
+        int flag = isLiked ? 1 : -1;
+        mPaintTextCur.getTextBounds(textCur, 0, textCur.length(), mTextBounds);
+        mTextTranslateY = mTextTranslateY * -flag;
         int baseLineNewY = baseLineY + (flag * mTextTranslateBound);
         canvas.drawText(textCur, leftX, baseLineY, mPaintTextCur);
         canvas.drawText(textNew, leftX, baseLineNewY, mPaintTextNew);
-        Log.e("TAG", "drawText: isLiked=" + isLiked + ",mTextTranslateY=" + mTextTranslateY + ",textNew=" + textNew + ",mValue=" + mValue);
     }
 
     private void drawBitmap(Canvas canvas, int centerX, int centerY) {
