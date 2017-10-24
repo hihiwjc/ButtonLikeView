@@ -41,7 +41,7 @@ public class ButtonLikeView extends View {
     /**
      * 数值
      */
-    private int mValue = 18899;
+    private int mValue = 0;
     private boolean isLiked = false;
     private Rect mTextBounds = new Rect();
     private ObjectAnimator mAnimator;
