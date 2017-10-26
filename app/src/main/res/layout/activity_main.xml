@@ -12,6 +12,7 @@
 		app:drawableLiked="@mipmap/ic_button_liked"
 		app:drawableShining="@mipmap/ic_button_like_shining"
 		app:drawableUnlike="@mipmap/ic_button_unlike"
+		app:rippleColor="#e5593f"
 		app:textSize="16sp"
 		/>
 </LinearLayout>

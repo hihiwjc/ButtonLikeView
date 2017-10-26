@@ -38,6 +38,7 @@ public class ButtonLikeView extends View {
      * 文字颜色
      */
     private int mTextColor;
+    private int mRippleColor;
     private BitmapDrawable mDrawableLiked;
     private BitmapDrawable mDrawableUnlike;
     private BitmapDrawable mDrawableShining;
@@ -81,6 +82,7 @@ public class ButtonLikeView extends View {
         mTextSize = array.getDimensionPixelSize(R.styleable.ButtonLikeView_textSize, DEFAULT_TEXT_SIZE_PIXELS);
         mTextTranslateBound = array.getDimensionPixelSize(R.styleable.ButtonLikeView_textTranslateBound, (int) (mTextSize * 1.5));
         mTextColor = array.getColor(R.styleable.ButtonLikeView_textColor, Color.GRAY);
+        mRippleColor = array.getColor(R.styleable.ButtonLikeView_rippleColor, Color.GRAY);
         mDrawableLiked = (BitmapDrawable) array.getDrawable(R.styleable.ButtonLikeView_drawableLiked);
         mDrawableUnlike = (BitmapDrawable) array.getDrawable(R.styleable.ButtonLikeView_drawableUnlike);
         mDrawableShining = (BitmapDrawable) array.getDrawable(R.styleable.ButtonLikeView_drawableShining);
@@ -251,14 +253,27 @@ public class ButtonLikeView extends View {
     }
 
     private void drawBitmap(Canvas canvas, int centerX, int centerY) {
-        Bitmap bitmap = getCurrentBitmap();
+        Bitmap bitmap = (isLiked ? mDrawableLiked : mDrawableUnlike).getBitmap();
+        Bitmap bitmapNew = (isLiked ? mDrawableUnlike : mDrawableLiked).getBitmap();
         int bWidth = bitmap.getWidth();
         int bHeight = bitmap.getHeight();
+        int bNWidth = bitmapNew.getWidth();
+        int bNHeight = bitmapNew.getHeight();
+        float progress = (float) mTextTranslateY / mTextTranslateBound;
+        int alpha = (int) (progress * MAX_ALPHA);
+        mPaint.setAlpha(MAX_ALPHA - alpha);
         canvas.drawBitmap(bitmap, centerX - bWidth, centerY - (bHeight / 2), mPaint);
-    }
-
-    private Bitmap getCurrentBitmap() {
-        return (isLiked ? mDrawableLiked : mDrawableUnlike).getBitmap();
+        mPaint.setAlpha(alpha);
+        canvas.drawBitmap(bitmapNew, centerX - bNWidth, centerY - (bNHeight / 2), mPaint);
+        if (!isLiked) {
+            float radius = (bNWidth / 2f) * (progress + 0.5f);
+            mPaint.setStrokeWidth(radius / 10f);
+            mPaint.setColor(mRippleColor);
+            mPaint.setStyle(Paint.Style.STROKE);
+            mPaint.setAlpha(alpha);
+            canvas.drawCircle(centerX - (bNWidth / 2), centerY, radius, mPaint);
+            //Log.e(TAG, "drawText: isLiked=" + isLiked + ",radius=" + radius);
+        }
     }
 
 }
