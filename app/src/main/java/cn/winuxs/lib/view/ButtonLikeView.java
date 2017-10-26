@@ -10,9 +10,9 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.drawable.BitmapDrawable;
+import android.support.annotation.ColorInt;
 import android.support.annotation.Nullable;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.view.View;
 
 import cn.winuxs.lib.R;
@@ -28,7 +28,15 @@ import cn.winuxs.lib.R;
 public class ButtonLikeView extends View {
     public static final int DEFAULT_TEXT_SIZE_PIXELS = 16;
     public static final int MAX_ALPHA = 255;
+    public static final String TAG = "TAG";
+    /**
+     * 默认动画时长
+     */
+    public static final int DEFAULT_ANIMATION_DURATION = 400;
     private float mTextSize;
+    /**
+     * 文字颜色
+     */
     private int mTextColor;
     private BitmapDrawable mDrawableLiked;
     private BitmapDrawable mDrawableUnlike;
@@ -41,13 +49,17 @@ public class ButtonLikeView extends View {
     /**
      * 数值
      */
-    private int mValue = 0;
+    private int mValue = -1;
     private boolean isLiked = false;
     private Rect mTextBounds = new Rect();
     private ObjectAnimator mAnimator;
     private int mTextTranslateY;
-    private int mTextTranslateBound = 30;
-    ;
+    /**
+     * 文字动画移动的长度 单位px
+     */
+    private int mTextTranslateBound;
+    private long mAnimationDuration;
+    private int mFlag;
 
 
     public ButtonLikeView(Context context) {
@@ -67,10 +79,12 @@ public class ButtonLikeView extends View {
         /*初始化参数*/
         TypedArray array = context.obtainStyledAttributes(attrs, R.styleable.ButtonLikeView);
         mTextSize = array.getDimensionPixelSize(R.styleable.ButtonLikeView_textSize, DEFAULT_TEXT_SIZE_PIXELS);
+        mTextTranslateBound = array.getDimensionPixelSize(R.styleable.ButtonLikeView_textTranslateBound, (int) (mTextSize * 1.5));
         mTextColor = array.getColor(R.styleable.ButtonLikeView_textColor, Color.GRAY);
         mDrawableLiked = (BitmapDrawable) array.getDrawable(R.styleable.ButtonLikeView_drawableLiked);
         mDrawableUnlike = (BitmapDrawable) array.getDrawable(R.styleable.ButtonLikeView_drawableUnlike);
         mDrawableShining = (BitmapDrawable) array.getDrawable(R.styleable.ButtonLikeView_drawableShining);
+        mAnimationDuration = array.getInt(R.styleable.ButtonLikeView_animationDuration, DEFAULT_ANIMATION_DURATION);
         array.recycle();
         /*初始化Paint*/
         mPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -85,7 +99,7 @@ public class ButtonLikeView extends View {
         mPaintTextPined.setColor(mTextColor);
         /*animator*/
         mAnimator = ObjectAnimator.ofInt(this, "textTranslateY", 0, mTextTranslateBound);
-        mAnimator.setDuration(200);
+        mAnimator.setDuration(mAnimationDuration);
         mAnimator.addListener(new ObjectAnimator.AnimatorListener() {
             @Override
             public void onAnimationStart(Animator animation) {
@@ -93,10 +107,11 @@ public class ButtonLikeView extends View {
 
             @Override
             public void onAnimationEnd(Animator animation) {
-                int flag = isLiked ? 1 : -1;
-                mValue += flag;
+                isLiked = mFlag > 0;
+                mFlag = isLiked ? 1 : -1;
+                mValue += mFlag;
                 mTextTranslateY = 0;
-                Log.e("TAG", "onAnimationEnd: mValue=" + mValue);
+                //Log.e(TAG, "onAnimationEnd: mValue=" + mValue);
             }
 
             @Override
@@ -111,18 +126,48 @@ public class ButtonLikeView extends View {
             if (mAnimator.isRunning()) {
                 return;
             }
-            isLiked = !isLiked;
+            mFlag = isLiked ? -1 : 1;
+            //Log.e(TAG, "mTextTranslateBound=" + mTextTranslateBound);
             mAnimator.start();
         });
         setOnLongClickListener(view -> {
             if (mAnimator.isRunning()) {
                 return true;
             }
-            setValue((int) (Math.random()*100000+1));
+            setValue((int) (Math.random() * 100000 + 1));
             return true;
         });
     }
 
+    /**
+     * 设置文字颜色
+     *
+     * @param color 文字颜色
+     */
+    public void setTextColor(@ColorInt int color) {
+        mTextColor = color;
+        mPaint.setColor(mTextColor);
+        mPaintTextCur.setColor(mTextColor);
+        mPaintTextNew.setColor(mTextColor);
+        mPaintTextPined.setColor(mTextColor);
+        invalidate();
+    }
+
+    /**
+     * 设置动画时长
+     *
+     * @param duration 动画时长
+     */
+    public void setAnimationDuration(long duration) {
+        mAnimationDuration = duration;
+        mAnimator.setDuration(duration);
+    }
+
+    /**
+     * 设置当前值
+     *
+     * @param value Value
+     */
     public void setValue(int value) {
         mValue = value;
         invalidate();
@@ -132,7 +177,6 @@ public class ButtonLikeView extends View {
         mTextTranslateY = y;
         invalidate();
     }
-
 
     @Override
     protected void onDraw(Canvas canvas) {
@@ -150,16 +194,17 @@ public class ButtonLikeView extends View {
         int alpha = (int) (((float) mTextTranslateY / mTextTranslateBound) * MAX_ALPHA);
         mPaintTextCur.setAlpha(MAX_ALPHA - alpha);
         mPaintTextNew.setAlpha(alpha);
-        int newValue = mValue + flag;
+        int newValue = mValue - flag;
         String textCur = mValue + "";
         String textNew = newValue + "";
         /*长度变化直接为整个文本做动画*/
-        if (textCur.length() != textNew.length()) {
+        if (textCur.length() != textNew.length() || textCur.length() == 1) {
             mPaintTextCur.getTextBounds(textCur, 0, textCur.length(), mTextBounds);
             int leftX = (int) (centerX + (mTextSize / 2));
-            mTextTranslateY = mTextTranslateY * -flag;
+            mTextTranslateY = mTextTranslateY * flag;
             int baseLineY = (centerY - (mTextBounds.top + mTextBounds.bottom) / 2) + mTextTranslateY;
             drawMovedText(canvas, leftX, baseLineY, textCur, textNew);
+            //Log.e("TAG", "drawText: isLiked=" + isLiked + ",mTextTranslateY=" + mTextTranslateY + ",textCur=" + textCur + ",textNew=" + textNew + ",mValue=" + mValue);
             return;
         }
         /*长度不变则只需为变化的文本做动画*/
@@ -170,11 +215,12 @@ public class ButtonLikeView extends View {
         int baseLineY = (centerY - (mTextBounds.top + mTextBounds.bottom) / 2);
         /*绘制固定的部分文字*/
         drawPinedText(canvas, leftX, baseLineY, textPined);
-        mTextTranslateY = mTextTranslateY * -flag;
+        mTextTranslateY = mTextTranslateY * flag;
         baseLineY = (centerY - (mTextBounds.top + mTextBounds.bottom) / 2) + mTextTranslateY;
         leftX = (int) (leftX + mPaintTextPined.measureText(textPined));
         /*绘制移动的部分文字*/
         drawMovedText(canvas, leftX, baseLineY, textCur.substring(dIndex, textCur.length()), textNew.substring(dIndex, textCur.length()));
+        //Log.e("TAG", "drawText: isLiked=" + isLiked + ",mTextTranslateY=" + mTextTranslateY + ",textPined=" + textPined + ",textCur=" + textCur + ",textNew=" + textNew + ",mValue=" + mValue);
     }
 
     private void drawPinedText(Canvas canvas, int leftX, int baseLineY, String textPined) {
@@ -198,8 +244,8 @@ public class ButtonLikeView extends View {
     private void drawMovedText(Canvas canvas, int leftX, int baseLineY, String textCur, String textNew) {
         int flag = isLiked ? 1 : -1;
         mPaintTextCur.getTextBounds(textCur, 0, textCur.length(), mTextBounds);
-        mTextTranslateY = mTextTranslateY * -flag;
-        int baseLineNewY = baseLineY + (flag * mTextTranslateBound);
+        mTextTranslateY = mTextTranslateY * flag;
+        int baseLineNewY = baseLineY + (-flag * mTextTranslateBound);
         canvas.drawText(textCur, leftX, baseLineY, mPaintTextCur);
         canvas.drawText(textNew, leftX, baseLineNewY, mPaintTextNew);
     }

@@ -4,7 +4,9 @@
 		<attr name="drawableLiked" format="reference"/>
 		<attr name="drawableUnlike" format="reference"/>
 		<attr name="drawableShining" format="reference"/>
+		<attr name="animationDuration" format="integer"/>
 		<attr name="textSize" format="dimension"/>
+		<attr name="textTranslateBound" format="dimension"/>
 		<attr name="textColor" format="color"/>
 	</declare-styleable>
 </resources>
