@@ -50,7 +50,7 @@ public class ButtonLikeView extends View {
     /**
      * 数值
      */
-    private int mValue = -1;
+    private int mValue = 0;
     private boolean isLiked = false;
     private Rect mTextBounds = new Rect();
     private ObjectAnimator mAnimator;
@@ -124,20 +124,26 @@ public class ButtonLikeView extends View {
             public void onAnimationRepeat(Animator animation) {
             }
         });
-        setOnClickListener(view -> {
-            if (mAnimator.isRunning()) {
-                return;
+        setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if (mAnimator.isRunning()) {
+                    return;
+                }
+                mFlag = isLiked ? -1 : 1;
+                //Log.e(TAG, "mTextTranslateBound=" + mTextTranslateBound);
+                mAnimator.start();
             }
-            mFlag = isLiked ? -1 : 1;
-            //Log.e(TAG, "mTextTranslateBound=" + mTextTranslateBound);
-            mAnimator.start();
         });
-        setOnLongClickListener(view -> {
-            if (mAnimator.isRunning()) {
+        setOnLongClickListener(new OnLongClickListener() {
+            @Override
+            public boolean onLongClick(View view) {
+                if (mAnimator.isRunning()) {
+                    return true;
+                }
+                ButtonLikeView.this.setValue((int) (Math.random() * 100000 + 1));
                 return true;
             }
-            setValue((int) (Math.random() * 100000 + 1));
-            return true;
         });
     }
 
@@ -255,6 +261,7 @@ public class ButtonLikeView extends View {
     private void drawBitmap(Canvas canvas, int centerX, int centerY) {
         Bitmap bitmap = (isLiked ? mDrawableLiked : mDrawableUnlike).getBitmap();
         Bitmap bitmapNew = (isLiked ? mDrawableUnlike : mDrawableLiked).getBitmap();
+        Bitmap shiningBitmap = mDrawableShining.getBitmap();
         int bWidth = bitmap.getWidth();
         int bHeight = bitmap.getHeight();
         int bNWidth = bitmapNew.getWidth();
@@ -271,8 +278,12 @@ public class ButtonLikeView extends View {
             mPaint.setColor(mRippleColor);
             mPaint.setStyle(Paint.Style.STROKE);
             mPaint.setAlpha(alpha);
+            canvas.drawBitmap(shiningBitmap, centerX - bNWidth, centerY - bNHeight, mPaint);
             canvas.drawCircle(centerX - (bNWidth / 2), centerY, radius, mPaint);
             //Log.e(TAG, "drawText: isLiked=" + isLiked + ",radius=" + radius);
+        }else{
+            mPaint.setAlpha(MAX_ALPHA - alpha);
+            canvas.drawBitmap(shiningBitmap, centerX - bNWidth, centerY - bNHeight, mPaint);
         }
     }
 
