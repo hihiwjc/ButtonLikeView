@@ -135,7 +135,7 @@ public class ButtonLikeView extends View {
                 mAnimator.start();
             }
         });
-        setOnLongClickListener(new OnLongClickListener() {
+        /*setOnLongClickListener(new OnLongClickListener() {
             @Override
             public boolean onLongClick(View view) {
                 if (mAnimator.isRunning()) {
@@ -144,7 +144,7 @@ public class ButtonLikeView extends View {
                 ButtonLikeView.this.setValue((int) (Math.random() * 100000 + 1));
                 return true;
             }
-        });
+        });*/
     }
 
     /**
