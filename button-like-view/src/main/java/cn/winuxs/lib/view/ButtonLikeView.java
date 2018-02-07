@@ -15,13 +15,14 @@ import android.support.annotation.Nullable;
 import android.util.AttributeSet;
 import android.view.View;
 
-import cn.winuxs.lib.R;
+import cn.winuxs.lib.blv.R;
+
 
 /**
- * <br/>Author:hihiwjc
- * <br/>Email:hihiwjc@live.com
- * <br/>Date:2017/10/20
- * <br/>Func:
+ * Author:hihiwjc
+ * Email:hihiwjc@live.com
+ * Date:2017/10/20
+ * Func:ButtonLikeView
  */
 
 @SuppressWarnings("unused")
